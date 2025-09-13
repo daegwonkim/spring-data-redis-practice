@@ -1,5 +1,6 @@
 package com.example.redis_practice;
 
+import com.example.redis_practice.dto.MessageDto;
 import com.example.redis_practice.entity.User;
 import com.example.redis_practice.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,11 +17,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 class RedisPracticeApplicationTests {
 
-	@Autowired
-    private RedisTemplate<String, String> redisTemplate;
+	@Autowired private RedisTemplate<String, String> redisTemplate;
 
-    @Autowired
-    public UserService userService;
+    @Autowired private UserService userService;
+
+    @Autowired private RedisMessageListenerContainer redisMessageListenerContainer;
+    @Autowired private RedisPublisher redisPublisher;
+    @Autowired private RedisSubscriber redisSubscriber;
+
 
     @Test
     void testStrings() {
@@ -51,5 +57,18 @@ class RedisPracticeApplicationTests {
         // 삭제
         Long deletedUserId = userService.deleteUser(userId);
         assertEquals(deletedUserId, user.getId());
+    }
+
+    @Test
+    void redisPubSubTest() {
+        String channel = "channel1";
+        MessageDto message = MessageDto.builder()
+                .channel(channel)
+                .sender("sender")
+                .message("hello world")
+                .build();
+
+        redisMessageListenerContainer.addMessageListener(redisSubscriber, new ChannelTopic(channel));
+        redisPublisher.publish(new ChannelTopic(channel), message);
     }
 }
